@@ -5,8 +5,8 @@ const config = {
     },
     ip_range: {
         1: {
-            start: 0, //to turn off, set 0 and 0
-            end: 0
+            start: 1, //to turn off, set 0 and 0
+            end: 255
         },
         2: {
             start: 1,
@@ -14,7 +14,8 @@ const config = {
         },
     },
     ping_try_count: 1, //requests per ip
-    excluded_IP: ["192.168.111.25",""],
+    excluded_IP: ["",""],
+    try_timing: 20000, //ms, no change needed, 20k should be enough for 255*2 ips
 }
 
 

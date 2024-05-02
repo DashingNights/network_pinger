@@ -21,6 +21,7 @@ function createList() {
 			}
 		}
 	}
+	console.log("IP list created.");
 	return ip_list;
 }
 
@@ -75,6 +76,7 @@ function pingList() {
 }
 
 function compareList() {
+	console.log("Comparing lists...");
 	const online_array = Array.from(online_list);
 	const offline_list = ip_list.filter((e) => !online_array.includes(e));
 
@@ -88,8 +90,34 @@ function compareList() {
 	});
 }
 
+function compileOutputData() {
+	console.log("Comparison done.");
+	console.log("Online & Might be online IPs: ", online_list.size);
+	fs.appendFile(`./${outfilename}`, `Online & Might be online IPs: ${online_list.size}\r\n`, (err) => {
+		if (err) {
+			console.error(err);
+		}
+	});
+	console.log("Offline IPs: ",ip_list.filter((e) => !online_list.has(e)).length);
+	fs.appendFile(`./${outfilename}`, `Offline IPs: ${ip_list.filter((e) => !online_list.has(e)).length}\r\n`, (err) => {
+		if (err) {
+			console.error(err);
+		}
+	});
+	console.log("Scanned IPs: ", ip_list.length);
+	fs.appendFile(`./${outfilename}`, `Scanned IPs: ${ip_list.length}\r\n`, (err) => {
+		if (err) {
+			console.error(err);
+		}
+	});
+	console.log("Output file: ", outfilename);
+	console.log("IP(s) ignored: ", config.excluded_IP);
+}
 
 pingList();
 setTimeout(function () {
-	compareList();
-}, 15000);
+	compareList()
+	setTimeout(function () {
+		compileOutputData();
+	},5000);
+}, 20000);
