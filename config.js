@@ -13,9 +13,9 @@ const config = {
             end: 255
         },
     },
-    ping_try_count: 1, //requests per ip
-    excluded_IP: ["",""],
-    try_timing: 20000, //ms, no change needed, 20k should be enough for 255*2 ips
+    excluded_IP: [""],
+
+    try_timing: 30000, //ms, no change needed, 20k should be enough for 255*2 ips
 }
 
 

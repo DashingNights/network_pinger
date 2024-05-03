@@ -34,7 +34,8 @@ function pingList() {
 		ip_list.forEach((e) => {
 			const startTime = new Date().getTime();
 
-			exec(`ping -c ${config.ping_try_count} ${e}`, (err, stdout, stderr) => {
+			exec(`ping /n 2 ${e}`, (err, stdout, stderr) => {
+				console.log(stdout);
 				const endTime = new Date().getTime();
 				const elapsedTime = endTime - startTime;
 
@@ -42,30 +43,30 @@ function pingList() {
 					return;
 				}
 
-				if (stdout && elapsedTime <= 10000) {
-					fs.appendFile(`./${outfilename}`, `Online: ${e}\r\n`, (err) => {
-						if (err) {
-							console.error(err);
-						} else {
-							online_list.add(e);
-							console.log(`IP ${e} is online. Check output file for more info.`);
-						}
-					});
-				} else {
+				if (stdout) {
 					const lines = stdout.split("\n");
-					const filteredLines = lines.filter((line) => !line.includes("Destination host unreachable."));
-
-					if (filteredLines.length > 0) {
-						console.log(e + " might be online!");
-						online_list.add(e);
-						fs.appendFile(`./${outfilename}`, `MIGHT be Online: ${e}\r\n`, (err) => {
+					if (lines.filter((line) => !line.includes(`bytes=32`)).length > 0) {
+						fs.appendFile(`./${outfilename}`, `Online: ${e}\r\n`, (err) => {
 							if (err) {
 								console.error(err);
+							} else {
+								online_list.add(e);
+								console.log(`IP ${e} is online. Check output file for more info.`);
 							}
 						});
+					} else {
+						const lines = stdout.split("\n");
+							if (lines.filter((line) => !line.includes("Destination host unreachable.")).length > 0) {
+							console.log(e + " might be online!");
+							online_list.add(e);
+							fs.appendFile(`./${outfilename}`, `MIGHT be Online: ${e}\r\n`, (err) => {
+								if (err) {
+									console.error(err);
+								}
+							});
+						}
 					}
-				}
-
+				} 
 				pendingPings--;
 				if (pendingPings === 0) {
 					resolve();
@@ -98,7 +99,7 @@ function compileOutputData() {
 			console.error(err);
 		}
 	});
-	console.log("Offline IPs: ",ip_list.filter((e) => !online_list.has(e)).length);
+	console.log("Offline IPs: ", ip_list.filter((e) => !online_list.has(e)).length);
 	fs.appendFile(`./${outfilename}`, `Offline IPs: ${ip_list.filter((e) => !online_list.has(e)).length}\r\n`, (err) => {
 		if (err) {
 			console.error(err);
@@ -112,12 +113,18 @@ function compileOutputData() {
 	});
 	console.log("Output file: ", outfilename);
 	console.log("IP(s) ignored: ", config.excluded_IP);
+	fs.appendFile(`./${outfilename}`, `Excluded IPs: ${config.excluded_IP}`, (err) => {
+		if (err) {
+			console.error(err);
+		}
+	});
+	
 }
 
 pingList();
 setTimeout(function () {
-	compareList()
+	compareList();
 	setTimeout(function () {
 		compileOutputData();
-	},5000);
-}, 20000);
+	}, 5000);
+}, config.try_timing);
