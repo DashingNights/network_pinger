@@ -2,6 +2,8 @@ const exec = require("child_process").exec;
 const fs = require("node:fs");
 const config = require("./config");
 const online_list = new Set();
+const unreachable_list = new Set();
+const offline_list = new Set();
 let ip_list = [];
 
 const now = new Date();
@@ -35,7 +37,7 @@ function pingList() {
 			const startTime = new Date().getTime();
 
 			exec(`ping /n 2 ${e}`, (err, stdout, stderr) => {
-				console.log(stdout);
+				// console.log(stdout);
 				const endTime = new Date().getTime();
 				const elapsedTime = endTime - startTime;
 
@@ -45,7 +47,7 @@ function pingList() {
 
 				if (stdout) {
 					const lines = stdout.split("\n");
-					if (lines.filter((line) => !line.includes(`bytes=32`)).length > 0) {
+					if (lines.filter((line) => line.includes(`bytes=32`)).length > 0) {
 						fs.appendFile(`./${outfilename}`, `Online: ${e}\r\n`, (err) => {
 							if (err) {
 								console.error(err);
@@ -56,9 +58,9 @@ function pingList() {
 						});
 					} else {
 						const lines = stdout.split("\n");
-							if (lines.filter((line) => !line.includes("Destination host unreachable.")).length > 0) {
+							if (lines.filter((line) => line.includes("Destination host unreachable.")).length > 0) {
 							console.log(e + " might be online!");
-							online_list.add(e);
+							unreachable_list.add(e);
 							fs.appendFile(`./${outfilename}`, `MIGHT be Online: ${e}\r\n`, (err) => {
 								if (err) {
 									console.error(err);
@@ -77,30 +79,37 @@ function pingList() {
 }
 
 function compareList() {
-	console.log("Comparing lists...");
-	const online_array = Array.from(online_list);
-	const offline_list = ip_list.filter((e) => !online_array.includes(e));
 
-	offline_list.forEach((e) => {
-		fs.appendFile(`./${outfilename}`, `Offline: ${e}\r\n`, (err) => {
+	ip_list.forEach((e) => {
+		if (!online_list.has(e) && !unreachable_list.has(e)) {
+			offline_list.add(e);
+			fs.appendFile(`./${outfilename}`, `Offline: ${e}\r\n`, (err) => {
+				if (err) {
+					console.error(err);
+				}
+			});
 			console.log(`IP ${e} is offline. Check output file for more info.`);
-			if (err) {
-				console.error(err);
-			}
-		});
+		}
 	});
+	console.log("Comparison done.");
 }
 
 function compileOutputData() {
-	console.log("Comparison done.");
-	console.log("Online & Might be online IPs: ", online_list.size);
-	fs.appendFile(`./${outfilename}`, `Online & Might be online IPs: ${online_list.size}\r\n`, (err) => {
+	console.log("Online IPs: ", online_list.size);
+	fs.appendFile(`./${outfilename}`, `Online IPs: ${online_list.size}\r\n`, (err) => {
 		if (err) {
 			console.error(err);
 		}
 	});
-	console.log("Offline IPs: ", ip_list.filter((e) => !online_list.has(e)).length);
-	fs.appendFile(`./${outfilename}`, `Offline IPs: ${ip_list.filter((e) => !online_list.has(e)).length}\r\n`, (err) => {
+	var offline_count = ip_list.length - online_list.size - unreachable_list.size;
+	console.log("Offline IPs: ", offline_count);
+	fs.appendFile(`./${outfilename}`, `Offline IPs: `+ offline_count +"\r\n", (err) => {
+		if (err) {
+			console.error(err);
+		}
+	});
+	console.log("Unreachable IPs: ", unreachable_list.size);
+	fs.appendFile(`./${outfilename}`, `Unreachable IPs: ${unreachable_list.size}\r\n`, (err) => {
 		if (err) {
 			console.error(err);
 		}
@@ -124,7 +133,7 @@ function compileOutputData() {
 pingList();
 setTimeout(function () {
 	compareList();
-	setTimeout(function () {
-		compileOutputData();
-	}, 5000);
+		setTimeout(function () {
+			compileOutputData();
+		}, 5000);
 }, config.try_timing);
