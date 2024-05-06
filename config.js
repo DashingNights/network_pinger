@@ -1,7 +1,7 @@
 const config = {
     ip_subnet_pre: {
-        1: "192.168.111.", //to add more subnets, add a new key-value pair
-        2: "192.168.112.",
+        1: "192.168.100.", //to add more subnets, add a new key-value pair
+        2: "192.168.101.",
     },
     ip_range: {
         1: {
